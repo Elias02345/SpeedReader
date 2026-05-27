@@ -563,6 +563,55 @@ function wireEvents() {
   });
 }
 
+// ── UPDATE CHECK ──────────────────────────────────────────────────────────────
+const GITHUB_REPO = 'elias02345/SpeedReader';
+const GITHUB_BRANCH = 'claude/speed-reading-calibration-app-tRzW9';
+
+async function checkForUpdates() {
+  try {
+    // Only active when running from an installed service (version.json exists)
+    const vRes = await fetch('/version.json', { cache: 'no-store' });
+    if (!vRes.ok) return; // dev mode – skip silently
+    const version = await vRes.json();
+    if (!version.commit) return;
+
+    // Ask GitHub for latest commit on the branch
+    const apiUrl = `https://api.github.com/repos/${GITHUB_REPO}/branches/${encodeURIComponent(GITHUB_BRANCH)}`;
+    const gRes = await fetch(apiUrl, {
+      headers: { 'Accept': 'application/vnd.github.v3+json' },
+      cache: 'no-store',
+    });
+    if (!gRes.ok) return; // rate-limited or offline – skip
+
+    const data = await gRes.json();
+    const latestSha = data?.commit?.sha;
+    if (!latestSha) return;
+
+    if (latestSha !== version.commit) {
+      showUpdateBanner(version.commit.slice(0, 8), latestSha.slice(0, 8));
+    }
+  } catch {
+    // Network unavailable or CORS issue – fail silently
+  }
+}
+
+function showUpdateBanner(currentSha, latestSha) {
+  if ($('update-banner')) return; // already shown
+
+  const isDE = lang === 'de';
+  const banner = document.createElement('div');
+  banner.id = 'update-banner';
+  banner.className = 'update-banner';
+  banner.innerHTML = `
+    <span class="update-icon">↑</span>
+    <span class="update-msg">${isDE ? 'Update verfügbar' : 'Update available'}</span>
+    <code class="update-cmd">sudo speedreader-update</code>
+    <span class="update-sha">${currentSha} → ${latestSha}</span>
+    <button class="update-close" onclick="document.getElementById('update-banner').remove()" title="Dismiss">×</button>
+  `;
+  document.body.prepend(banner);
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function init() {
   detectRefreshRate().then(hz => { screenHz = hz; });
@@ -572,6 +621,8 @@ async function init() {
   updateHomeCard();
   wireEvents();
   navigateTo('view-home');
+  // Check for updates after a short delay (non-blocking)
+  setTimeout(checkForUpdates, 2000);
 }
 
 document.addEventListener('DOMContentLoaded', init);

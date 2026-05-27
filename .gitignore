@@ -1,0 +1,10 @@
+# Generated at install time – not part of source
+version.json
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor dirs
+.vscode/
+.idea/
