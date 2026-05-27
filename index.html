@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpeedReader</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── VIEW: Home ──────────────────────────────────────────────────────── -->
+  <section id="view-home" class="view active">
+    <header class="lang-bar">
+      <div class="lang-switcher">
+        <button id="lang-de" class="lang-btn active">DE</button>
+        <button id="lang-en" class="lang-btn">EN</button>
+      </div>
+    </header>
+    <main class="view-main center">
+      <div class="logo-block">
+        <h1 class="app-title">SpeedReader</h1>
+        <p class="app-tagline" data-i18n="tagline"></p>
+      </div>
+
+      <div id="home-profile-card" class="profile-card hidden">
+        <div class="profile-dot"></div>
+        <div>
+          <p id="profile-rec-label" class="profile-rec-label"></p>
+          <p class="profile-wpm-val"><span id="profile-wpm-val"></span></p>
+        </div>
+      </div>
+
+      <div class="btn-stack">
+        <button id="btn-calibrate" class="btn btn-primary" data-i18n="btnCalibrate"></button>
+        <button id="btn-read" class="btn btn-primary" data-i18n="btnRead"></button>
+        <button id="btn-import" class="btn btn-ghost" data-i18n="btnImportProfile"></button>
+        <button id="btn-download-profile" class="btn btn-ghost hidden" data-i18n="btnDownloadProfile"></button>
+      </div>
+    </main>
+    <input type="file" id="import-file" accept=".json" class="sr-only">
+  </section>
+
+  <!-- ── VIEW: Calibration Intro ─────────────────────────────────────────── -->
+  <section id="view-cal-intro" class="view">
+    <header class="view-header">
+      <button id="btn-back-intro" class="btn-icon">←</button>
+      <h2 data-i18n="calIntroTitle"></h2>
+    </header>
+    <main class="view-main center">
+      <div id="cal-intro-body" class="prose"></div>
+      <button id="btn-start-cal" class="btn btn-primary" data-i18n="btnStartCal"></button>
+    </main>
+  </section>
+
+  <!-- ── VIEW: Calibration Demo ──────────────────────────────────────────── -->
+  <section id="view-cal-demo" class="view">
+    <header class="view-header">
+      <h2 data-i18n="demoTitle"></h2>
+    </header>
+    <main class="view-main">
+      <p class="hint-text" data-i18n="demoDesc"></p>
+      <div class="word-stage">
+        <div class="word-display" id="demo-word">
+          <span class="word-left"></span>
+          <span class="word-orp"></span>
+          <span class="word-right"></span>
+        </div>
+        <div class="orp-guide"></div>
+      </div>
+      <button id="btn-demo-next" class="btn btn-primary hidden" data-i18n="btnDemoNext"></button>
+    </main>
+  </section>
+
+  <!-- ── VIEW: Calibration Baseline ─────────────────────────────────────── -->
+  <section id="view-cal-baseline" class="view">
+    <header class="view-header cal-header">
+      <h2 data-i18n="baselineTitle"></h2>
+      <div class="cal-meta">
+        <span id="baseline-step" class="step-label"></span>
+        <span id="baseline-wpm-badge" class="wpm-badge"></span>
+      </div>
+      <div id="baseline-dots" class="dots-row"></div>
+    </header>
+    <main class="view-main">
+      <div class="word-stage">
+        <div class="word-display" id="baseline-word">
+          <span class="word-left"></span>
+          <span class="word-orp"></span>
+          <span class="word-right"></span>
+        </div>
+        <div class="orp-guide"></div>
+      </div>
+      <div id="baseline-recall" class="recall-panel hidden">
+        <p id="baseline-recall-label" class="recall-prompt"></p>
+        <textarea id="baseline-input" class="recall-textarea" rows="3"></textarea>
+        <button id="btn-baseline-submit" class="btn btn-primary" data-i18n="btnSubmitRecall"></button>
+        <p class="hint-tiny">Ctrl + Enter</p>
+      </div>
+    </main>
+  </section>
+
+  <!-- ── VIEW: Calibration Ramp ──────────────────────────────────────────── -->
+  <section id="view-cal-ramp" class="view">
+    <header class="view-header">
+      <h2 data-i18n="rampTitle"></h2>
+      <span id="ramp-wpm-display" class="wpm-badge"></span>
+    </header>
+    <main class="view-main">
+      <p id="ramp-desc" class="hint-text"></p>
+      <div class="word-stage">
+        <div class="word-display" id="ramp-word">
+          <span class="word-left"></span>
+          <span class="word-orp"></span>
+          <span class="word-right"></span>
+        </div>
+        <div class="orp-guide"></div>
+      </div>
+      <div id="ramp-recall" class="recall-panel hidden">
+        <textarea id="ramp-input" class="recall-textarea" rows="3"></textarea>
+        <button id="btn-ramp-submit" class="btn btn-primary" data-i18n="btnSubmitRecall"></button>
+        <p class="hint-tiny">Ctrl + Enter</p>
+      </div>
+    </main>
+  </section>
+
+  <!-- ── VIEW: Calibration Confirm ──────────────────────────────────────── -->
+  <section id="view-cal-confirm" class="view">
+    <header class="view-header">
+      <h2 data-i18n="confirmTitle"></h2>
+      <span id="confirm-wpm-display" class="wpm-badge"></span>
+    </header>
+    <main class="view-main">
+      <p id="confirm-desc" class="hint-text"></p>
+      <div class="word-stage">
+        <div class="word-display" id="confirm-word">
+          <span class="word-left"></span>
+          <span class="word-orp"></span>
+          <span class="word-right"></span>
+        </div>
+        <div class="orp-guide"></div>
+      </div>
+      <div id="confirm-recall" class="recall-panel hidden">
+        <textarea id="confirm-input" class="recall-textarea" rows="3"></textarea>
+        <button id="btn-confirm-submit" class="btn btn-primary" data-i18n="btnSubmitRecall"></button>
+        <p class="hint-tiny">Ctrl + Enter</p>
+      </div>
+    </main>
+  </section>
+
+  <!-- ── VIEW: Calibration Results ──────────────────────────────────────── -->
+  <section id="view-cal-results" class="view">
+    <header class="view-header">
+      <h2 id="result-title"></h2>
+    </header>
+    <main class="view-main center">
+      <div class="results-stats">
+        <div class="stat-row">
+          <span id="result-baseline-label" class="stat-label"></span>
+          <span id="result-baseline" class="stat-value"></span>
+        </div>
+        <div class="stat-row">
+          <span id="result-max-label" class="stat-label"></span>
+          <span id="result-max" class="stat-value"></span>
+        </div>
+        <div class="stat-row highlight">
+          <span id="result-recommended-label" class="stat-label"></span>
+          <span id="result-recommended" class="stat-value accent"></span>
+        </div>
+      </div>
+      <div id="results-chart" class="results-chart"></div>
+      <div class="btn-stack">
+        <button id="btn-save-profile" class="btn btn-primary" data-i18n="btnSaveProfile"></button>
+        <button id="btn-go-read" class="btn btn-ghost" data-i18n="btnGoRead"></button>
+      </div>
+    </main>
+  </section>
+
+  <!-- ── VIEW: Reader Setup ─────────────────────────────────────────────── -->
+  <section id="view-reader-setup" class="view">
+    <header class="view-header">
+      <button id="btn-back-setup" class="btn-icon">←</button>
+      <h2 data-i18n="readerSetupTitle"></h2>
+      <p id="reader-profile-hint" class="profile-hint"></p>
+    </header>
+    <main class="view-main">
+      <textarea id="reader-text-input" class="text-input" rows="8"
+        data-i18n-ph="readerPlaceholder"></textarea>
+      <div class="wpm-control">
+        <label class="wpm-label">
+          <span data-i18n="wpmLabel"></span>
+          <strong id="setup-wpm-value">250</strong>
+        </label>
+        <input type="range" id="setup-wpm-slider" class="wpm-slider"
+          min="50" max="1000" step="25" value="250">
+      </div>
+      <button id="btn-start-reading" class="btn btn-primary" data-i18n="btnStartReading"></button>
+    </main>
+  </section>
+
+  <!-- ── VIEW: Reader ───────────────────────────────────────────────────── -->
+  <section id="view-reader" class="view reader-view">
+    <div class="reader-topbar">
+      <span id="reader-wpm-label" class="reader-wpm-label"></span>
+      <div class="reader-progress-wrap">
+        <div class="reader-progress-track">
+          <div id="reader-progress-fill" class="reader-progress-fill"></div>
+        </div>
+        <span id="reader-progress-text" class="reader-progress-text"></span>
+      </div>
+    </div>
+
+    <main class="reader-stage">
+      <div class="word-stage reader-word-stage">
+        <div class="word-display reader-word-display" id="reader-word">
+          <span class="word-left"></span>
+          <span class="word-orp"></span>
+          <span class="word-right"></span>
+        </div>
+        <div class="orp-guide reader-orp-guide"></div>
+      </div>
+    </main>
+
+    <div class="reader-controls">
+      <button id="btn-reader-back" class="ctrl-btn" title="Back (Esc)">←</button>
+      <button id="btn-reader-rewind" class="ctrl-btn" title="−5 words (←)">«</button>
+      <button id="btn-reader-playpause" class="ctrl-btn ctrl-main">⏸</button>
+      <button id="btn-reader-forward" class="ctrl-btn" title="+5 words (→)">»</button>
+      <button id="btn-reader-restart" class="ctrl-btn" title="Restart">↺</button>
+      <div class="speed-inline">
+        <input type="range" id="reader-wpm-slider" class="wpm-slider-sm"
+          min="50" max="1000" step="25" value="250">
+        <span id="reader-wpm-inline" class="wpm-inline-val">250</span>
+      </div>
+    </div>
+    <p class="key-hint" data-i18n="pressSpace"></p>
+  </section>
+
+  <!-- ── VIEW: Reader Done ──────────────────────────────────────────────── -->
+  <section id="view-reader-done" class="view">
+    <main class="view-main center">
+      <h2 class="done-title" data-i18n="done"></h2>
+      <p class="done-msg" data-i18n="doneMsg"></p>
+      <div class="btn-stack">
+        <button id="btn-read-again" class="btn btn-primary" data-i18n="btnReadAgain"></button>
+        <button id="btn-new-text" class="btn btn-ghost" data-i18n="btnNewText"></button>
+        <button id="btn-done-home" class="btn btn-ghost" data-i18n="btnHome"></button>
+      </div>
+    </main>
+  </section>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
