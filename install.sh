@@ -9,7 +9,7 @@ IFS=$'\n\t'
 
 # ── Settings (override via env) ──────────────────────────────────────────────
 REPO="${SPEEDREADER_REPO:-https://github.com/elias02345/SpeedReader.git}"
-BRANCH="${SPEEDREADER_BRANCH:-claude/speed-reading-calibration-app-tRzW9}"
+BRANCH="${SPEEDREADER_BRANCH:-main}"
 INSTALL_DIR="${SPEEDREADER_DIR:-/opt/speedreader}"
 SERVICE_NAME="speedreader"
 SVC_USER="speedreader"
@@ -90,29 +90,68 @@ install_pkgs() {
   esac
 }
 
+# ── Node.js install ───────────────────────────────────────────────────────────
+install_node() {
+  # Check if Node.js >= 18 already present
+  if command -v node &>/dev/null; then
+    local nv
+    nv=$(node --version 2>/dev/null | grep -oE '[0-9]+' | head -1)
+    if [[ ${nv:-0} -ge 18 ]]; then
+      _ok "Node.js $(node --version) already installed"
+      return
+    fi
+  fi
+
+  _info "Installing Node.js 22.x..."
+  case $PKG in
+    apt)
+      curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >/dev/null
+      DEBIAN_FRONTEND=noninteractive apt-get install -y -qq nodejs >/dev/null
+      ;;
+    dnf)
+      dnf module install -y nodejs:22 >/dev/null 2>&1 || dnf install -y nodejs npm >/dev/null
+      ;;
+    yum)
+      curl -fsSL https://rpm.nodesource.com/setup_22.x | bash - >/dev/null
+      yum install -y nodejs >/dev/null
+      ;;
+    pacman)
+      pacman -Sy --noconfirm --quiet nodejs npm >/dev/null
+      ;;
+    apk)
+      apk add --quiet nodejs npm >/dev/null
+      ;;
+    zypper)
+      zypper --quiet install -y nodejs22 npm22 >/dev/null 2>&1 \
+        || zypper --quiet install -y nodejs npm >/dev/null
+      ;;
+    none)
+      _error "No package manager found. Install Node.js 18+ manually: https://nodejs.org"
+      ;;
+  esac
+  _ok "Node.js $(node --version)  ·  npm $(npm --version)"
+}
+
 # ── Dependency check + install ────────────────────────────────────────────────
 check_deps() {
   _step "Checking dependencies"
   detect_pkgmgr
 
   local missing=()
-  command -v git     &>/dev/null || missing+=(git)
-  command -v python3 &>/dev/null || missing+=(python3)
-  command -v curl    &>/dev/null || missing+=(curl)
+  command -v git  &>/dev/null || missing+=(git)
+  command -v curl &>/dev/null || missing+=(curl)
 
   if [[ ${#missing[@]} -gt 0 ]]; then
     [[ $PKG == apt ]] && { apt-get update -qq >/dev/null; }
     install_pkgs "${missing[@]}"
   fi
 
-  # Verify python3 http.server is available
-  python3 -c "import http.server" 2>/dev/null \
-    || _error "python3 http.server module missing. Install python3 stdlib."
+  install_node
 
-  local git_v py_v
+  local git_v node_v
   git_v=$(git --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)
-  py_v=$(python3 --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?')
-  _ok "git ${git_v}  ·  python3 ${py_v}"
+  node_v=$(node --version 2>/dev/null)
+  _ok "git ${git_v}  ·  node ${node_v}"
 }
 
 # ── Clone / update repository ─────────────────────────────────────────────────
@@ -133,6 +172,19 @@ setup_repo() {
 
   write_version_json
   _ok "Application at ${INSTALL_DIR}  ($(git -C "$INSTALL_DIR" rev-parse --short HEAD))"
+}
+
+# ── npm install + Vite build ───────────────────────────────────────────────────
+build_app() {
+  _step "Installing npm dependencies & building"
+  _info "npm install..."
+  npm --prefix "$INSTALL_DIR" install --silent 2>/dev/null \
+    || npm --prefix "$INSTALL_DIR" install  # fallback without --silent
+
+  _info "npm run build..."
+  npm --prefix "$INSTALL_DIR" run build 2>&1 | tail -5 || _error "Build failed."
+
+  _ok "Build complete → ${INSTALL_DIR}/dist/"
 }
 
 write_version_json() {
@@ -171,18 +223,22 @@ setup_user() {
   chown -R "${SVC_USER}:${SVC_USER}" "$INSTALL_DIR"
   chmod 755 "$INSTALL_DIR"
   find "$INSTALL_DIR" -type f -name "*.sh" -exec chmod 755 {} \;
+  # Vite binary needs execute permission
+  chmod +x "${INSTALL_DIR}/node_modules/.bin/vite" 2>/dev/null || true
 }
 
 # ── Systemd service ────────────────────────────────────────────────────────────
 setup_service() {
   _step "Creating systemd service"
 
-  local py3
-  py3=$(command -v python3)
+  local node_bin vite_bin
+  node_bin=$(command -v node)
+  vite_bin="${INSTALL_DIR}/node_modules/.bin/vite"
+  [[ -f "$vite_bin" ]] || _error "vite binary not found at ${vite_bin}. Did the build succeed?"
 
   cat > "/etc/systemd/system/${SERVICE_NAME}.service" <<EOF
 [Unit]
-Description=SpeedReader – RSVP Speed Reading App
+Description=SpeedReader – RSVP Speed Reading App (Vite Preview)
 Documentation=https://github.com/elias02345/SpeedReader
 After=network.target
 Wants=network.target
@@ -192,7 +248,7 @@ Type=simple
 User=${SVC_USER}
 Group=${SVC_USER}
 WorkingDirectory=${INSTALL_DIR}
-ExecStart=${py3} -m http.server ${PORT} --bind 127.0.0.1
+ExecStart=${node_bin} ${vite_bin} preview --host 127.0.0.1 --port ${PORT}
 Restart=on-failure
 RestartSec=5s
 StartLimitBurst=5
@@ -208,7 +264,7 @@ ProtectHome=true
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=${SERVICE_NAME}
-Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=NODE_ENV=production
 
 [Install]
 WantedBy=multi-user.target
@@ -297,6 +353,12 @@ esac
 _log "Pulling changes..."
 git -C "$INSTALL_DIR" pull origin "$BRANCH" --quiet
 _ok "Code updated to $(git -C "$INSTALL_DIR" rev-parse --short HEAD)"
+
+# Rebuild
+_log "Rebuilding application..."
+npm --prefix "$INSTALL_DIR" install --silent 2>/dev/null || npm --prefix "$INSTALL_DIR" install
+npm --prefix "$INSTALL_DIR" run build
+_ok "Build complete"
 
 # Update version.json
 COMMIT=$(git -C "$INSTALL_DIR" rev-parse HEAD)
@@ -409,6 +471,7 @@ print_summary() {
 main() {
   check_deps
   setup_repo
+  build_app
   setup_user
   setup_service
   install_update_script

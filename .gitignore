@@ -1,6 +1,12 @@
 # Generated at install time – not part of source
 version.json
 
+# Build output
+dist/
+
+# Dependencies
+node_modules/
+
 # OS artifacts
 .DS_Store
 Thumbs.db
